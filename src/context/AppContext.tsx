@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { TeachingModule, UserProfile, ModuleType, SubjectType, FaseType, KopConfig } from '../types';
+import { TeachingModule, UserProfile, ModuleType, SubjectType, FaseType, KopConfig, SettingsBackupPayload, BackupSnapshot } from '../types';
 import { initialModules, initialUserProfile, initialKopConfig } from '../data/mockData';
 
 interface ToastInfo {
@@ -35,6 +35,15 @@ interface AppContextType {
   setIsDeleteConfirmOpen: (open: boolean) => void;
   moduleToDelete: TeachingModule | null;
   setModuleToDelete: (mod: TeachingModule | null) => void;
+  // Backup & Restore Modal
+  isBackupModalOpen: boolean;
+  setIsBackupModalOpen: (open: boolean) => void;
+  exportSettingsBackup: (includeModules?: boolean) => SettingsBackupPayload;
+  restoreSettingsBackup: (data: SettingsBackupPayload) => { success: boolean; message: string };
+  snapshots: BackupSnapshot[];
+  saveSnapshot: (name: string, type?: 'settings_only' | 'full_database') => void;
+  deleteSnapshot: (id: string) => void;
+  restoreSnapshot: (id: string) => void;
   // Actions
   addModule: (data: Partial<TeachingModule>) => TeachingModule;
   updateModule: (id: string, data: Partial<TeachingModule>) => void;
@@ -42,6 +51,7 @@ interface AppContextType {
   duplicateModule: (id: string) => void;
   incrementDownload: (id: string) => void;
   updateUserProfile: (data: Partial<UserProfile>) => void;
+  updateProfile: (data: Partial<UserProfile>) => void;
   updateKopConfig: (data: Partial<KopConfig>) => void;
   resetToDefaultData: () => void;
   toast: ToastInfo | null;
@@ -53,6 +63,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 const LOCAL_STORAGE_KEY_MODULES = 'sd_modul_pembelajaran_data_v1';
 const LOCAL_STORAGE_KEY_PROFILE = 'sd_modul_pembelajaran_profile_v1';
 const LOCAL_STORAGE_KEY_THEME = 'sd_modul_pembelajaran_theme_v1';
+const LOCAL_STORAGE_KEY_SNAPSHOTS = 'sd_modul_pembelajaran_snapshots_v1';
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [modules, setModules] = useState<TeachingModule[]>(() => {
@@ -108,6 +119,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [moduleToDelete, setModuleToDelete] = useState<TeachingModule | null>(null);
+
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
+
+  // Snapshots stored in localStorage
+  const [snapshots, setSnapshots] = useState<BackupSnapshot[]>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY_SNAPSHOTS);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Failed to parse saved snapshots', e);
+    }
+    return [];
+  });
+
+  // Save snapshots to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY_SNAPSHOTS, JSON.stringify(snapshots));
+    } catch (e) {
+      console.error('Failed to store snapshots', e);
+    }
+  }, [snapshots]);
 
   const [toast, setToast] = useState<ToastInfo | null>(null);
 
@@ -293,6 +328,127 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('Pengaturan KOP & Tanda Tangan berhasil disimpan!', 'success');
   };
 
+  const exportSettingsBackup = (includeModules = false): SettingsBackupPayload => {
+    const today = new Date().toISOString();
+    const effectiveKop = userProfile.kopConfig || initialKopConfig;
+
+    const payload: SettingsBackupPayload = {
+      version: '2.4.0',
+      exportedAt: today,
+      appName: 'Modul Pembelajaran SD',
+      type: includeModules ? 'full_database' : 'settings_only',
+      userProfile: {
+        ...userProfile,
+        kopConfig: effectiveKop,
+      },
+      kopConfig: effectiveKop,
+      modules: includeModules ? modules : undefined,
+      metadata: {
+        schoolName: userProfile.school || 'Sekolah Dasar',
+        teacherName: userProfile.name || 'Guru',
+        headmasterName: userProfile.headmasterName || 'Kepala Sekolah',
+        npsn: userProfile.npsn || '-',
+        academicYear: userProfile.academicYear || '2024/2025',
+        hasLeftLogo: !!effectiveKop.leftLogoUrl,
+        hasRightLogo: !!effectiveKop.rightLogoUrl,
+        modulesCount: includeModules ? modules.length : undefined,
+      },
+    };
+
+    return payload;
+  };
+
+  const restoreSettingsBackup = (data: SettingsBackupPayload): { success: boolean; message: string } => {
+    try {
+      if (!data || typeof data !== 'object') {
+        throw new Error('Format berkas tidak valid.');
+      }
+
+      if (!data.userProfile && !data.kopConfig) {
+        throw new Error('Berkas cadangan tidak memiliki data profil atau KOP surat.');
+      }
+
+      // Restore userProfile & KOP
+      const restoredKop: KopConfig = {
+        ...initialKopConfig,
+        ...(data.kopConfig || {}),
+        ...(data.userProfile?.kopConfig || {}),
+      };
+
+      const restoredProfile: UserProfile = {
+        ...initialUserProfile,
+        ...(data.userProfile || {}),
+        kopConfig: restoredKop,
+      };
+
+      setUserProfile(restoredProfile);
+
+      // Restore modules if provided
+      if (data.modules && Array.isArray(data.modules) && data.modules.length > 0) {
+        setModules(data.modules);
+      }
+
+      // Sync to localStorage immediately
+      localStorage.setItem(LOCAL_STORAGE_KEY_PROFILE, JSON.stringify(restoredProfile));
+      if (data.modules && Array.isArray(data.modules)) {
+        localStorage.setItem(LOCAL_STORAGE_KEY_MODULES, JSON.stringify(data.modules));
+      }
+
+      const formattedTime = new Intl.DateTimeFormat('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(new Date());
+
+      localStorage.setItem('PROFILE_LAST_SAVED_TIME', formattedTime);
+
+      showToast('Database pengaturan berhasil dipulihkan!', 'success');
+      return { success: true, message: 'Database pengaturan berhasil dipulihkan!' };
+    } catch (err: any) {
+      console.error('Error restoring backup:', err);
+      const errMsg = err?.message || 'Gagal memulihkan database.';
+      showToast(errMsg, 'error');
+      return { success: false, message: errMsg };
+    }
+  };
+
+  const saveSnapshot = (name: string, type: 'settings_only' | 'full_database' = 'settings_only') => {
+    const backupData = exportSettingsBackup(type === 'full_database');
+    const newSnapshot: BackupSnapshot = {
+      id: `snap-${Date.now()}`,
+      name: name || `Snapshot ${new Date().toLocaleDateString('id-ID')}`,
+      timestamp: new Intl.DateTimeFormat('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(new Date()),
+      type,
+      data: backupData,
+    };
+
+    setSnapshots(prev => [newSnapshot, ...prev.slice(0, 9)]); // keep up to 10 snapshots
+    showToast(`Snapshot "${newSnapshot.name}" berhasil disimpan ke peramban!`, 'success');
+  };
+
+  const deleteSnapshot = (id: string) => {
+    setSnapshots(prev => prev.filter(s => s.id !== id));
+    showToast('Snapshot telah dihapus.', 'info');
+  };
+
+  const restoreSnapshot = (id: string) => {
+    const target = snapshots.find(s => s.id === id);
+    if (!target) {
+      showToast('Snapshot tidak ditemukan.', 'error');
+      return;
+    }
+    restoreSettingsBackup(target.data);
+    showToast(`Snapshot "${target.name}" berhasil dipulihkan!`, 'success');
+  };
+
   const resetToDefaultData = () => {
     setModules(initialModules);
     setUserProfile(initialUserProfile);
@@ -324,12 +480,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsDeleteConfirmOpen,
         moduleToDelete,
         setModuleToDelete,
+        isBackupModalOpen,
+        setIsBackupModalOpen,
+        exportSettingsBackup,
+        restoreSettingsBackup,
+        snapshots,
+        saveSnapshot,
+        deleteSnapshot,
+        restoreSnapshot,
         addModule,
         updateModule,
         deleteModule,
         duplicateModule,
         incrementDownload,
         updateUserProfile,
+        updateProfile: updateUserProfile,
         updateKopConfig,
         resetToDefaultData,
         toast,

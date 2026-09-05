@@ -8,7 +8,8 @@ import {
   Sparkles,
   Search,
   RotateCcw,
-  ChevronRight
+  ChevronRight,
+  Database
 } from 'lucide-react';
 
 interface TopbarProps {
@@ -25,7 +26,8 @@ export const Topbar: React.FC<TopbarProps> = ({ onToggleSidebar }) => {
     setEditingModule,
     userProfile,
     resetToDefaultData,
-    setSearchQuery
+    setSearchQuery,
+    setIsBackupModalOpen
   } = useApp();
 
   const [localSearch, setLocalSearch] = useState('');
@@ -133,6 +135,18 @@ export const Topbar: React.FC<TopbarProps> = ({ onToggleSidebar }) => {
           className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
         >
           <Sparkles className="w-4 h-4 text-orange-500" />
+        </button>
+
+        {/* Database Backup & Restore Menu */}
+        <button
+          id="btn-topbar-database-backup"
+          type="button"
+          onClick={() => setIsBackupModalOpen(true)}
+          title="Database Pengaturan: Simpan & Restore (Cadangan JSON & Snapshot)"
+          className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:text-[#00529C] dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1.5"
+        >
+          <Database className="w-4 h-4 text-[#FF7300]" />
+          <span className="hidden xl:inline text-xs font-bold text-slate-700 dark:text-slate-200">Database</span>
         </button>
 
         {/* Reset Demo Data */}

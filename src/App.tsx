@@ -7,6 +7,7 @@ import { DeleteConfirmModal } from './components/common/DeleteConfirmModal';
 import { ModuleDetailModal } from './components/modules/ModuleDetailModal';
 import { ModuleFormModal } from './components/modules/ModuleFormModal';
 import { PrintPreviewModal } from './components/modules/PrintPreviewModal';
+import { DatabaseBackupRestoreModal } from './components/profile/DatabaseBackupRestoreModal';
 
 // Views
 import { DashboardView } from './components/dashboard/DashboardView';
@@ -83,6 +84,7 @@ const MainLayout: React.FC = () => {
       <ModuleDetailModal />
       <ModuleFormModal />
       <PrintPreviewModal />
+      <DatabaseBackupRestoreModal />
       <DeleteConfirmModal />
       <ToastNotification />
     </div>

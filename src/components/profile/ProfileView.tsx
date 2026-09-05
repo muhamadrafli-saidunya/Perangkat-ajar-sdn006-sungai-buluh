@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   User,
@@ -16,14 +16,34 @@ import {
   Clock,
   Sparkles,
   Building2,
-  BookOpen
+  BookOpen,
+  Database,
+  Download,
+  Upload,
+  HardDrive,
+  RotateCcw,
+  FileJson,
+  Check,
+  Copy
 } from 'lucide-react';
 import { KopSignatureSettings } from '../modules/KopSignatureSettings';
 import { KopConfig } from '../../types';
 import { initialKopConfig } from '../../data/mockData';
 
 export const ProfileView: React.FC = () => {
-  const { userProfile, updateProfile, updateKopConfig, showToast } = useApp();
+  const {
+    userProfile,
+    updateProfile,
+    updateKopConfig,
+    showToast,
+    setIsBackupModalOpen,
+    exportSettingsBackup,
+    restoreSettingsBackup,
+    snapshots,
+    saveSnapshot,
+    deleteSnapshot,
+    restoreSnapshot,
+  } = useApp();
 
   // Primary School & Profile States (NO DUPLICATES)
   const [school, setSchool] = useState(userProfile.school || '');
@@ -67,6 +87,38 @@ export const ProfileView: React.FC = () => {
   });
   const [isDirty, setIsDirty] = useState<boolean>(false);
   const [justSaved, setJustSaved] = useState<boolean>(false);
+  const [quickSnapshotInput, setQuickSnapshotInput] = useState('');
+  const directFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Synchronize state if userProfile updates (e.g. restored from backup)
+  useEffect(() => {
+    setSchool(userProfile.school || '');
+    setNpsn(userProfile.npsn || '');
+    setCity(userProfile.city || '');
+    setProvince(userProfile.province || '');
+    if (userProfile.kopConfig?.schoolAddress) {
+      setSchoolAddress(userProfile.kopConfig.schoolAddress);
+    }
+    if (userProfile.kopConfig?.schoolContact) {
+      setSchoolContact(userProfile.kopConfig.schoolContact);
+    }
+    setHeadmasterName(userProfile.headmasterName || '');
+    setHeadmasterNip(userProfile.headmasterNip || '');
+    if (userProfile.kopConfig?.headmasterTitle) {
+      setHeadmasterTitle(userProfile.kopConfig.headmasterTitle);
+    }
+    setName(userProfile.name || '');
+    setNip(userProfile.nip || '');
+    setRole(userProfile.role || '');
+    setPhone(userProfile.phone || '');
+    setEmail(userProfile.email || '');
+    setAcademicYear(userProfile.academicYear || '2024/2025');
+    setActiveSemester(userProfile.activeSemester || 1);
+    setKopConfig(userProfile.kopConfig || initialKopConfig);
+
+    const saved = localStorage.getItem('PROFILE_LAST_SAVED_TIME');
+    if (saved) setLastSavedTimestamp(saved);
+  }, [userProfile]);
 
   // Mark form as dirty when any field changes
   const markDirty = () => {
@@ -153,6 +205,48 @@ export const ProfileView: React.FC = () => {
     }, 5000);
   };
 
+  const handleQuickDownload = () => {
+    const backupData = exportSettingsBackup(false);
+    const jsonString = JSON.stringify(backupData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const safeSchool = (school || 'sekolah').toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 25);
+    const dateStr = new Date().toISOString().split('T')[0];
+    const filename = `cadangan_pengaturan_${safeSchool}_${dateStr}.json`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast(`Berkas cadangan pengaturan "${filename}" berhasil diunduh!`, 'success');
+  };
+
+  const handleDirectFileRestore = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const parsed = JSON.parse(text);
+        if (window.confirm(`Pulihkan database pengaturan dari "${file.name}"?\nSemua profil sekolah, guru, kepala sekolah, dan konfigurasi KOP/logo akan diperbarui.`)) {
+          const res = restoreSettingsBackup(parsed);
+          if (res.success) {
+            setIsDirty(false);
+            setJustSaved(true);
+            setTimeout(() => setJustSaved(false), 5000);
+          }
+        }
+      } catch (err: any) {
+        showToast('Gagal membaca berkas cadangan: Format file JSON tidak valid.', 'error');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   return (
     <div id="profile-settings-page" className="max-w-4xl mx-auto space-y-6 pb-20 animate-in fade-in duration-200">
       {/* Header & Quick Action */}
@@ -184,12 +278,24 @@ export const ProfileView: React.FC = () => {
           </p>
         </div>
 
-        {/* Quick Top Save Button */}
-        <div className="shrink-0 flex items-center">
+        {/* Quick Top Save & Database Buttons */}
+        <div className="shrink-0 flex items-center gap-2.5">
+          <button
+            type="button"
+            id="btn-profile-backup-restore-top"
+            onClick={() => setIsBackupModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-3 rounded-2xl font-bold text-xs sm:text-sm bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-[#00529C] dark:text-blue-300 border border-blue-200 dark:border-blue-800/80 transition active:scale-95 shadow-xs"
+            title="Menu Simpan & Restore Database Pengaturan"
+          >
+            <Database className="w-4 h-4 text-[#FF7300]" />
+            <span className="hidden sm:inline">Database Pengaturan</span>
+            <span className="sm:hidden">Database</span>
+          </button>
+
           <button
             type="button"
             onClick={() => handleSaveAll()}
-            className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs sm:text-sm shadow-md transition-all active:scale-95 ${
+            className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-black text-xs sm:text-sm shadow-md transition-all active:scale-95 ${
               justSaved
                 ? 'bg-emerald-600 text-white shadow-emerald-600/30'
                 : 'bg-gradient-to-r from-[#00529C] to-[#002D62] hover:opacity-95 text-white shadow-blue-900/25'
@@ -552,6 +658,146 @@ export const ProfileView: React.FC = () => {
             onChange={handleKopChange}
             simplified={true}
           />
+        </div>
+
+        {/* BAGIAN 5: SIMPAN & RESTORE DATABASE PENGATURAN */}
+        <div id="section-database-backup-restore" className="p-6 bg-white dark:bg-slate-900 rounded-3xl border-2 border-orange-500/30 dark:border-orange-500/40 shadow-sm space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div>
+              <h3 className="text-sm font-extrabold uppercase tracking-wider text-[#00529C] dark:text-blue-400 flex items-center gap-2">
+                <Database className="w-4 h-4 text-[#FF7300]" />
+                <span>5. Simpan & Restore Database Pengaturan</span>
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Amankan seluruh konfigurasi sekolah, profil guru, kepala sekolah, dan berkas logo KOP ke dalam file JSON atau pulihkan kapan pun.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              id="btn-open-database-manager"
+              onClick={() => setIsBackupModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/40 text-orange-700 dark:text-orange-300 font-bold text-xs border border-orange-200 dark:border-orange-900/60 shadow-xs transition active:scale-95"
+            >
+              <Database className="w-3.5 h-3.5" />
+              <span>Buka Pusat Kelola Database</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Kartu 1: Simpan / Ekspor */}
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/70 space-y-3 flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-950 text-[#00529C] dark:text-blue-300 flex items-center justify-center shrink-0">
+                    <Download className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wide">
+                      Simpan / Cadangkan Database
+                    </h4>
+                    <p className="text-[11px] text-slate-500">Unduh berkas cadangan mandiri (.JSON)</p>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Menyimpan profil satuan pendidikan, NIP/nama guru, kepala sekolah, serta file logo dinas & sekolah dalam format data terenkapsulasi.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200/70 dark:border-slate-700/60">
+                <button
+                  type="button"
+                  id="btn-quick-download-backup-json"
+                  onClick={handleQuickDownload}
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#00529C] hover:bg-blue-800 text-white font-bold text-xs shadow-xs active:scale-95 transition"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Unduh File Cadangan (.JSON)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsBackupModalOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium text-xs transition"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Opsi Lengkap</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Kartu 2: Restore / Pulihkan */}
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/70 space-y-3 flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                    <Upload className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wide">
+                      Restore / Pulihkan Database
+                    </h4>
+                    <p className="text-[11px] text-slate-500">Impor berkas JSON cadangan yang tersimpan</p>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Pulihkan seluruh pengaturan sekolah dan logo cetak tanpa perlu mengisi data satu per satu lagi dari awal.
+                </p>
+              </div>
+
+              <div className="pt-2 border-t border-slate-200/70 dark:border-slate-700/60">
+                <input
+                  ref={directFileInputRef}
+                  id="input-direct-restore-file"
+                  type="file"
+                  accept=".json,application/json"
+                  onChange={handleDirectFileRestore}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  id="btn-trigger-file-restore"
+                  onClick={() => directFileInputRef.current?.click()}
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs active:scale-95 transition"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Pilih & Pulihkan Berkas JSON</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Snapshot Browser bar */}
+          <div className="p-3.5 bg-slate-100/80 dark:bg-slate-800/50 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+              <Clock className="w-4 h-4 text-[#FF7300]" />
+              <span>
+                Snapshot Internal Browser: <strong>{snapshots.length} slot tersimpan</strong>
+              </span>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <button
+                type="button"
+                id="btn-quick-snapshot-save"
+                onClick={() => {
+                  const defaultName = `Cadangan ${school || 'SD'} (${new Date().toLocaleDateString('id-ID')})`;
+                  const name = window.prompt('Beri nama untuk snapshot cadangan cepat:', defaultName);
+                  if (name && name.trim()) {
+                    saveSnapshot(name.trim(), 'settings_only');
+                  }
+                }}
+                className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition shadow-2xs"
+              >
+                + Buat Snapshot Baru
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsBackupModalOpen(true)}
+                className="px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold transition shadow-xs"
+              >
+                Lihat & Kelola Snapshot
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* BOTTOM ACTION BAR DENGAN STATUS PENYIMPANAN TERJAMIN */}

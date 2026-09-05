@@ -132,3 +132,31 @@ export interface UserProfile {
   headmasterNip: string;
   kopConfig?: KopConfig;
 }
+
+export interface SettingsBackupPayload {
+  version: string;
+  exportedAt: string;
+  appName: string;
+  type: 'settings_only' | 'full_database';
+  userProfile: UserProfile;
+  kopConfig: KopConfig;
+  modules?: TeachingModule[];
+  metadata?: {
+    schoolName: string;
+    teacherName: string;
+    headmasterName: string;
+    npsn: string;
+    academicYear: string;
+    hasLeftLogo: boolean;
+    hasRightLogo: boolean;
+    modulesCount?: number;
+  };
+}
+
+export interface BackupSnapshot {
+  id: string;
+  name: string;
+  timestamp: string;
+  type: 'settings_only' | 'full_database';
+  data: SettingsBackupPayload;
+}
