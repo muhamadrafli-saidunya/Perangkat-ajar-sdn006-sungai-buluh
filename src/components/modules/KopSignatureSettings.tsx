@@ -11,19 +11,23 @@ import {
   User,
   ShieldCheck,
   RotateCcw,
-  Sparkles
+  Sparkles,
+  Eye,
+  Info
 } from 'lucide-react';
 
 interface KopSignatureSettingsProps {
   config: KopConfig;
   onChange: (updated: Partial<KopConfig>) => void;
   onSaveDefault?: () => void;
+  simplified?: boolean;
 }
 
 export const KopSignatureSettings: React.FC<KopSignatureSettingsProps> = ({
   config,
   onChange,
   onSaveDefault,
+  simplified = true,
 }) => {
   return (
     <div className="space-y-6">
@@ -51,7 +55,7 @@ export const KopSignatureSettings: React.FC<KopSignatureSettingsProps> = ({
             <div>
               <p className="text-xs font-black uppercase tracking-wider">KOP Surat Resmi</p>
               <p className="text-[11px] opacity-80">
-                {config.showKop ? 'Aktif dicetak di bagian atas' : 'Dinonaktifkan'}
+                {config.showKop ? 'Aktif dicetak di bagian atas kertas' : 'Dinonaktifkan'}
               </p>
             </div>
           </div>
@@ -163,7 +167,7 @@ export const KopSignatureSettings: React.FC<KopSignatureSettingsProps> = ({
         </div>
       </div>
 
-      {/* SECTION 3: EDIT TEKS KOP SURAT */}
+      {/* SECTION 3: EDIT TEKS KOP SURAT (HANYA BARIS KHUSUS DINAS) */}
       {config.showKop && (
         <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
           <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
@@ -172,12 +176,19 @@ export const KopSignatureSettings: React.FC<KopSignatureSettingsProps> = ({
             </div>
             <div>
               <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
-                Teks Informasi KOP Surat
+                Teks Naskah Dinas KOP Surat
               </h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Format baku naskah dinas pendidikan yang akan dicetak di antara kedua logo
+                Nama Sekolah, Alamat, dan NPSN otomatis diambil dari Profil Sekolah di atas
               </p>
             </div>
+          </div>
+
+          <div className="p-3 bg-blue-50/60 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-900/50 flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
+            <Info className="w-4 h-4 text-[#00529C] shrink-0 mt-0.5" />
+            <p className="leading-relaxed">
+              <strong>Bebas Pengulangan Isian:</strong> Nama Sekolah (<strong>{config.schoolName || 'SD'}</strong>), Alamat Lengkap, dan NPSN diambil langsung dari profil sekolah tanpa perlu diketik ulang. Anda cukup mengisi nama instansi dinas di bawah ini.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -206,45 +217,6 @@ export const KopSignatureSettings: React.FC<KopSignatureSettingsProps> = ({
                 className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
               />
             </div>
-
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Baris 3: Nama Satuan Pendidikan (Huruf Kapital Tebal)
-              </label>
-              <input
-                type="text"
-                value={config.schoolName}
-                onChange={(e) => onChange({ schoolName: e.target.value })}
-                placeholder="Contoh: SD NEGERI 01 MENTENG JAYA"
-                className="w-full px-3 py-2 text-xs font-black rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Baris 4: Alamat Lengkap & Kode Pos
-              </label>
-              <input
-                type="text"
-                value={config.schoolAddress}
-                onChange={(e) => onChange({ schoolAddress: e.target.value })}
-                placeholder="Contoh: Jl. Menteng Raya No. 10, RT.01/RW.02, Kec. Menteng, Jakarta Pusat 10340"
-                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Baris 5: Kontak, NPSN & Email / Posel
-              </label>
-              <input
-                type="text"
-                value={config.schoolContact}
-                onChange={(e) => onChange({ schoolContact: e.target.value })}
-                placeholder="Contoh: NPSN: 20108392 • Telp: (021) 3192849 • Posel: sdn01menteng@sekolah.belajar.id"
-                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-              />
-            </div>
           </div>
         </div>
       )}
@@ -258,10 +230,10 @@ export const KopSignatureSettings: React.FC<KopSignatureSettingsProps> = ({
             </div>
             <div>
               <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
-                Pengaturan Tanda Tangan & Lembar Pengesahan
+                Pengesahan & Tanggal Penetapan
               </h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Tempat penetapan, tanggal penetapan, data Kepala Sekolah, dan Guru Penyusun
+                Nama Kepala Sekolah & Guru otomatis tersinkron dari identitas sekolah di atas
               </p>
             </div>
           </div>
@@ -269,119 +241,167 @@ export const KopSignatureSettings: React.FC<KopSignatureSettingsProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Tempat Penetapan (Kota / Kabupaten)
+                Tanggal Dokumen (Kosongkan untuk otomatis tanggal hari cetak)
               </label>
               <input
                 type="text"
-                value={config.signaturePlace}
-                onChange={(e) => onChange({ signaturePlace: e.target.value })}
-                placeholder="Contoh: Jakarta Pusat"
+                value={config.signatureDate}
+                onChange={(e) => onChange({ signatureDate: e.target.value })}
+                placeholder="Contoh: 15 Juli 2024 atau biarkan otomatis hari ini"
                 className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
               />
             </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Tanggal Penetapan (Kosongkan untuk tanggal hari ini otomatis)
+                Sebutan Jabatan Kepala Sekolah
               </label>
               <input
                 type="text"
-                value={config.signatureDate}
-                onChange={(e) => onChange({ signatureDate: e.target.value })}
-                placeholder="Contoh: 15 Juli 2024 atau otomatis hari ini"
+                value={config.headmasterTitle}
+                onChange={(e) => onChange({ headmasterTitle: e.target.value })}
+                placeholder="Contoh: Kepala Sekolah / Plt. Kepala Sekolah"
                 className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
               />
             </div>
           </div>
-
-          {/* Dual columns: Kepala Sekolah & Guru */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-            {/* Kepala Sekolah */}
-            <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-2.5">
-              <h4 className="text-xs font-extrabold uppercase text-[#00529C] dark:text-blue-400">
-                Pejabat Mengetahui (Kepala Sekolah)
-              </h4>
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
-                  Jabatan Pengesahan
-                </label>
-                <input
-                  type="text"
-                  value={config.headmasterTitle}
-                  onChange={(e) => onChange({ headmasterTitle: e.target.value })}
-                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
-                  Nama Lengkap & Gelar
-                </label>
-                <input
-                  type="text"
-                  value={config.headmasterName}
-                  onChange={(e) => onChange({ headmasterName: e.target.value })}
-                  className="w-full px-2.5 py-1.5 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
-                  NIP / NUPTK
-                </label>
-                <input
-                  type="text"
-                  value={config.headmasterNip}
-                  onChange={(e) => onChange({ headmasterNip: e.target.value })}
-                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
-                />
-              </div>
-            </div>
-
-            {/* Guru Penyusun */}
-            <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-2.5">
-              <h4 className="text-xs font-extrabold uppercase text-[#FF7300]">
-                Penyusun Perangkat (Guru Kelas / Mapel)
-              </h4>
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
-                  Jabatan Guru
-                </label>
-                <input
-                  type="text"
-                  value={config.teacherTitle}
-                  onChange={(e) => onChange({ teacherTitle: e.target.value })}
-                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
-                  Nama Lengkap & Gelar
-                </label>
-                <input
-                  type="text"
-                  value={config.teacherName}
-                  onChange={(e) => onChange({ teacherName: e.target.value })}
-                  className="w-full px-2.5 py-1.5 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
-                  NIP / NUPTK
-                </label>
-                <input
-                  type="text"
-                  value={config.teacherNip}
-                  onChange={(e) => onChange({ teacherNip: e.target.value })}
-                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
-                />
-              </div>
-            </div>
-          </div>
         </div>
       )}
+
+      {/* SECTION 5: PRATINJAU LANGSUNG (LIVE PREVIEW) */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Eye className="w-4 h-4 text-[#00529C]" />
+            <h4 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-800 dark:text-white">
+              Pratinjau Nyata KOP & Lembar Tanda Tangan
+            </h4>
+          </div>
+          <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300">
+            Tampilan Dokumen Cetak
+          </span>
+        </div>
+
+        {/* Paper Simulation */}
+        <div className="p-4 sm:p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-300 dark:border-slate-700 shadow-sm text-slate-900 dark:text-white">
+          {config.showKop ? (
+            <div className="pb-3 mb-4" style={{ borderBottom: '3px double #334155' }}>
+              <div className="flex items-center justify-between gap-3">
+                {/* Logo Kiri */}
+                {config.leftLogoUrl ? (
+                  <div
+                    className="shrink-0 flex items-center justify-center"
+                    style={{ width: `${Math.min(config.leftLogoSize, 60)}px` }}
+                  >
+                    <img
+                      src={config.leftLogoUrl}
+                      alt="Logo Kiri"
+                      style={{
+                        width: `${Math.min(config.leftLogoSize, 60)}px`,
+                        maxHeight: `${Math.min(config.leftLogoSize, 60)}px`,
+                      }}
+                      className="object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-10 shrink-0" />
+                )}
+
+                {/* Teks KOP Tengah */}
+                <div className="flex-1 text-center font-sans">
+                  <p className="text-[11px] uppercase font-bold tracking-wider text-slate-700 dark:text-slate-300 leading-tight">
+                    {config.governmentHeader || 'PEMERINTAH DAERAH'}
+                  </p>
+                  <p className="text-[11px] uppercase font-bold tracking-wide text-slate-700 dark:text-slate-300 leading-tight">
+                    {config.departmentHeader || 'DINAS PENDIDIKAN'}
+                  </p>
+                  <h4 className="text-xs sm:text-sm font-black uppercase tracking-tight text-slate-950 dark:text-white my-0.5">
+                    {config.schoolName || 'SD NEGERI 01 MENTENG JAYA'}
+                  </h4>
+                  <p className="text-[9px] sm:text-[10px] text-slate-600 dark:text-slate-400 leading-snug">
+                    {config.schoolAddress || 'Alamat Sekolah Terpadu'}
+                  </p>
+                  <p className="text-[8px] sm:text-[9px] text-slate-500 dark:text-slate-400 leading-snug">
+                    {config.schoolContact || 'Kontak & NPSN Sekolah'}
+                  </p>
+                </div>
+
+                {/* Logo Kanan */}
+                {config.rightLogoUrl ? (
+                  <div
+                    className="shrink-0 flex items-center justify-center"
+                    style={{ width: `${Math.min(config.rightLogoSize, 60)}px` }}
+                  >
+                    <img
+                      src={config.rightLogoUrl}
+                      alt="Logo Kanan"
+                      style={{
+                        width: `${Math.min(config.rightLogoSize, 60)}px`,
+                        maxHeight: `${Math.min(config.rightLogoSize, 60)}px`,
+                      }}
+                      className="object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-10 shrink-0" />
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="p-3 text-center text-xs text-slate-400 italic border border-dashed rounded-lg mb-4">
+              KOP Surat dinonaktifkan
+            </div>
+          )}
+
+          {/* Dummy Module Body snippet */}
+          <div className="py-2 text-center border-b border-dashed border-slate-200 dark:border-slate-800 text-[10px] text-slate-400">
+            [... Isi Dokumen Perangkat Ajar / Modul Ajar ...]
+          </div>
+
+          {/* Signature Snippet */}
+          {config.showSignature ? (
+            <div className="pt-4 grid grid-cols-2 gap-4 text-center text-[10px] sm:text-xs font-sans">
+              <div>
+                <p className="text-slate-500">Mengetahui,</p>
+                <p className="font-bold text-slate-800 dark:text-slate-200">
+                  {config.headmasterTitle || 'Kepala Sekolah'}
+                </p>
+                <div className="h-10 sm:h-12 flex items-center justify-center text-[9px] text-slate-400 italic">
+                  (Tanda Tangan & Stempel)
+                </div>
+                <p className="font-black text-slate-900 dark:text-white underline">
+                  {config.headmasterName || 'Nama Kepala Sekolah'}
+                </p>
+                <p className="text-slate-500 text-[9px]">
+                  NIP. {config.headmasterNip || '-'}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-slate-500">
+                  {config.signaturePlace || 'Kota'}, {config.signatureDate || new Intl.DateTimeFormat('id-ID', { dateStyle: 'long' }).format(new Date())}
+                </p>
+                <p className="font-bold text-slate-800 dark:text-slate-200">
+                  {config.teacherTitle || 'Guru Kelas / Penyusun'}
+                </p>
+                <div className="h-10 sm:h-12 flex items-center justify-center text-[9px] text-slate-400 italic">
+                  (Tanda Tangan Guru)
+                </div>
+                <p className="font-black text-slate-900 dark:text-white underline">
+                  {config.teacherName || 'Nama Guru'}
+                </p>
+                <p className="text-slate-500 text-[9px]">
+                  NIP. {config.teacherNip || '-'}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="p-2 text-center text-xs text-slate-400 italic border border-dashed rounded-lg mt-3">
+              Lembar tanda tangan dinonaktifkan
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Save button if requested */}
       {onSaveDefault && (
