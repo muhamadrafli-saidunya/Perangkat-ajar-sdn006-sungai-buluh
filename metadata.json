@@ -1,0 +1,6 @@
+{
+  "name": "Modul Pembelajaran SD",
+  "description": "Aplikasi Manajemen dan Generator Perangkat Ajar Sekolah Dasar Terpadu Kurikulum Merdeka & K13 dengan Desain Modern Biru-Orange",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

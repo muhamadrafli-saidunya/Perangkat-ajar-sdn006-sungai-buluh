@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Hide everything except the print document paper */
+  #sidebar-navigation,
+  #topbar-navigation,
+  #btn-close-detail-modal,
+  .no-print,
+  #print-controls-bar,
+  #print-settings-drawer,
+  button,
+  nav,
+  header {
+    display: none !important;
+  }
+
+  #print-preview-overlay {
+    position: static !important;
+    background: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  #print-preview-modal {
+    border: none !important;
+    box-shadow: none !important;
+    max-height: none !important;
+    width: 100% !important;
+    background: transparent !important;
+  }
+
+  #print-document-paper {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 8mm 12mm !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Ensure images in KOP and signatures print in full crisp fidelity */
+  #print-document-paper img {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    display: block !important;
+  }
+}
